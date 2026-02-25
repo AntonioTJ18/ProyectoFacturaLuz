@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Práctica 7.1: Empaqueta y distribuye - ProyectoFacturaLuz</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #24292e;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+            color: #0366d6;
+        }
+        
+        h2 {
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 0.3em;
+            margin-top: 24px;
+            color: #24292e;
+        }
+        
+        h3 {
+            margin-top: 20px;
+            color: #24292e;
+        }
+        
+        code {
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            padding: 0.2em 0.4em;
+            font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 85%;
+        }
+        
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            padding: 16px;
+            overflow: auto;
+            line-height: 1.45;
+            font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            font-size: 85%;
+            border: 1px solid #e1e4e8;
+        }
+        
+        blockquote {
+            padding: 0 1em;
+            color: #6a737d;
+            border-left: 0.25em solid #dfe2e5;
+            margin: 0;
+        }
+        
+        ul, ol {
+            padding-left: 2em;
+        }
+        
+        li {
+            margin: 0.25em 0;
+        }
+        
+        .note {
+            background-color: #ffebcc;
+            border-left: 4px solid #ffa500;
+            padding: 12px;
+            margin: 16px 0;
+            border-radius: 3px;
+        }
+        
+        .warning {
+            background-color: #ffe6e6;
+            border-left: 4px solid #ff0000;
+            padding: 12px;
+            margin: 16px 0;
+            border-radius: 3px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+        }
+        
+        th, td {
+            border: 1px solid #dfe2e5;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f6f8fa;
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #e1e4e8;
+            border-radius: 3px;
+            margin: 16px 0;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background-color: #0366d6;
+            color: white;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📦 Práctica 7.1: Empaqueta y distribuye - ProyectoFacturaLuz</h1>
+    
+    <p>Este documento describe el proceso completo de empaquetado y distribución de la aplicación <strong>ElectricCityFactura</strong>, incluyendo la generación de JAR, creación de instaladores con jpackage, y herramientas externas como JSmooth e Inno Setup.</p>
+
+    <h2>📋 Tabla de Contenidos</h2>
+    <ul>
+        <li><a href="#inventario">1. Inventario y empaquetado de la aplicación</a></li>
+        <li><a href="#jpackage">2. Instalador con herramienta Java: jpackage</a></li>
+        <li><a href="#herramienta-externa">3. Instalador con herramienta externa</a></li>
+        <li><a href="#desatendida">4. Instalación desatendida</a></li>
+        <li><a href="#desinstalacion">5. Desinstalación y feedback</a></li>
+    </ul>
+
+    <h2 id="inventario">1. Inventario y empaquetado de la aplicación</h2>
+    
+    <h3>Componentes de la aplicación:</h3>
+    
+    <h4>📁 Código fuente y carpetas importantes:</h4>
+    <ul>
+        <li><code>org.example.ProyectoFacturaLuz</code></li>
+        <li><code>org.example.ProyectoFacturaLuz.BaseDatos</code></li>
+    </ul>
+    
+    <h4>🎨 Recursos FXML:</h4>
+    <ul>
+        <li><code>DisenioAplicacionFactura.fxml</code> (en la carpeta resources)</li>
+    </ul>
+    
+    <h4>📄 JasperReports:</h4>
+    <ul>
+        <li><code>Factura.jrxml</code> (en resources/org.example.ProyectoFacturaLuz/PDF)</li>
+    </ul>
+    
+    <h4>🗄️ Base de datos:</h4>
+    <ul>
+        <li><code>"EjercicioInterfaces.db"</code> (ruta absoluta en el código del controlador)</li>
+    </ul>
+    
+    <h4>📦 Dependencias externas:</h4>
+    <ul>
+        <li>JavaFX (javafx-controls, javafx-fxml)</li>
+        <li>SQLite JDBC</li>
+        <li>JasperReports (net.sf.jasperreports)</li>
+    </ul>
+
+    <h3>Configuración en build.gradle.kts:</h3>
+    <pre>
+tasks.jar {
+    archiveFileName.set("electricityFacturas.jar")
+    manifest {
+        attributes["Main-Class"] = "org.example.ProyectoFacturaLuz.Launcher"
+        attributes["Class-Path"] = configurations.runtimeClasspath.get().joinToString(" ") { it.name }
+    }
+    
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}</pre>
+
+    <p>El JAR generado se encuentra en: <code>build/libs/electricityFacturas.jar</code></p>
+
+    <h2 id="jpackage">2. Instalador con herramienta Java: jpackage</h2>
+    
+    <h3>Preparación de la carpeta app:</h3>
+    <p>Crear la carpeta <code>app</code> en la ruta:</p>
+    <pre>C:\Users\Antonio\Desktop\Cosas_de_curso\2_DAM\Interfaces\ProyectoFacturaLuz\app</pre>
+    <p>Dentro de esta carpeta, colocar:</p>
+    <ul>
+        <li>La base de datos <code>EjercicioInterfaces.db</code></li>
+        <li>El archivo <code>electricityFacturas.jar</code></li>
+    </ul>
+
+    <h3>Verificar jpackage:</h3>
+    <pre>C:\Users\Antonio\.jdks\openjdk-25.0.1\bin\jpackage --version</pre>
+
+    <div class="note">
+        <strong>📌 Nota importante:</strong> Es necesario instalar <strong>WiX Toolset v3.11.1</strong> para generar instaladores en Windows.
+        <br>
+        <a href="https://github.com/wixtoolset/wix3/releases">Descargar WiX Toolset 3.11.1</a>
+    </div>
+
+    <h3>Comando para generar EXE:</h3>
+    <pre>
+"C:\Users\Antonio\.jdks\openjdk-25.0.1\bin\jpackage" --name ElectricCityFactura --input . --main-jar electricityFacturas.jar --main-class org.example.ProyectoFacturaLuz.Launcher --type exe --win-menu --win-shortcut --java-options "--module-path C:\javafx-sdk-23\lib --add-modules ALL-MODULE-PATH -Duser.language=es"</pre>
+
+    <h3>Comando para generar MSI:</h3>
+    <pre>
+"C:\Users\Antonio\.jdks\openjdk-25.0.1\bin\jpackage" --name ElectricCityFactura --input . --main-jar electricityFacturas.jar --main-class org.example.ProyectoFacturaLuz.Launcher --type msi --win-menu --win-shortcut --java-options "--module-path C:\javafx-sdk-23\lib --add-modules ALL-MODULE-PATH -Duser.language=es"</pre>
+
+    <p>Archivos generados en la carpeta <code>app</code>:</p>
+    <ul>
+        <li><code>ElectricCityFactura-1.0.exe</code></li>
+        <li><code>ElectricCityFactura-1.0.msi</code></li>
+    </ul>
+
+    <h2 id="herramienta-externa">3. Instalador con herramienta externa</h2>
+    
+    <h3>3.1 JSmooth - Generar EXE ejecutable</h3>
+    
+    <h4>Paso 1: Configurar esqueleto</h4>
+    <ul>
+        <li>Seleccionar "Console Wrapper"</li>
+        <li>Configurar "PressKey" para apertura</li>
+    </ul>
+
+    <h4>Paso 2: Configurar ejecutable</h4>
+    <ul>
+        <li>Nombre del ejecutable: <code>ElectricCityFactura.exe</code></li>
+        <li>Seleccionar logo/icono de la aplicación</li>
+    </ul>
+
+    <h4>Paso 3: Configurar JAR</h4>
+    <ul>
+        <li>Seleccionar <code>electricityFacturas.jar</code></li>
+        <li>Clase principal: <code>Launcher</code></li>
+        <li>Marcar la opción <strong>"Use an embedded jar"</strong></li>
+    </ul>
+
+    <h4>Paso 4: Compilar</h4>
+    <p>Al compilar, se generará un archivo <code>.exe</code> en la carpeta del proyecto.</p>
+
+    <h3>3.2 Inno Setup - Crear instalador</h3>
+    
+    <h4>Paso 1: Nuevo proyecto</h4>
+    <p>Crear un nuevo archivo en Inno Setup.</p>
+
+    <h4>Paso 2: Datos principales</h4>
+    <pre>
+Nombre de aplicación: ElectricCityFactura
+Versión: 1.0
+Editor: [Tu nombre]
+Sitio web: [Opcional]</pre>
+
+    <h4>Paso 3: Carpeta de instalación</h4>
+    <p>Seleccionar una ubicación personalizada para la instalación.</p>
+
+    <h4>Paso 4: Añadir ejecutable</h4>
+    <p>Añadir el <code>.exe</code> generado con JSmooth.</p>
+
+    <h4>Paso 5: Seleccionar idioma</h4>
+    <p>Seleccionar el idioma de la aplicación.</p>
+
+    <h4>Paso 6: Configurar instalador</h4>
+    <ul>
+        <li>Carpeta de salida: <code>Output</code></li>
+        <li>Nombre del instalador: <code>ElectricCityFactura_Instalador.exe</code></li>
+    </ul>
+
+    <h4>Paso 7: Personalizar aspecto</h4>
+    <p>Modificar la apariencia del instalador según preferencias.</p>
+
+    <h4>Paso 8: Configuración final</h4>
+    <p>Desmarcar la casilla de compilación automática y finalizar.</p>
+
+    <p>El instalador se generará en la carpeta <code>Output</code>:</p>
+    <pre>C:\Users\Antonio\Desktop\Cosas_de_curso\2_DAM\Interfaces\ProyectoFacturaLuz\Output\ElectricCityFactura_Instalador.exe</pre>
+
+    <h2 id="desatendida">4. Instalación desatendida</h2>
+    
+    <h3>Parámetros de instalación silenciosa:</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Parámetro</th>
+                <th>Descripción</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>/SILENT</code></td>
+                <td>Muestra solo una barra de progreso</td>
+            </tr>
+            <tr>
+                <td><code>/VERYSILENT</code></td>
+                <td>Completamente silencioso, sin ventanas</td>
+            </tr>
+            <tr>
+                <td><code>/SUPPRESSMSGBOXES</code></td>
+                <td>Suprime cuadros de mensaje</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Ejemplo de instalación desatendida:</h3>
+    <pre>
+C:\Users\Alumno\Desktop\Mario_PR51\Folder_aplicacion\Output>ElectroFactura_Instalador.exe /VERYSILENT /SUPPRESSMSGBOXES /SP- /NOCANCEL</pre>
+
+    <h3>Tu comando personalizado:</h3>
+    <pre>
+C:\Users\Antonio\Desktop\Cosas_de_curso\2_DAM\Interfaces\ProyectoFacturaLuz\Output>ElectricCityFactura_Instalador.exe /VERYSILENT /SUPPRESSMSGBOXES /SP- /NOCANCEL</pre>
+
+    <h2 id="desinstalacion">5. Desinstalación y feedback</h2>
+    
+    <p>Inno Setup genera automáticamente un desinstalador junto con el instalador:</p>
+    <pre>
+unins000.exe
+unins000.dat</pre>
+
+    <h3>Ubicación del desinstalador:</h3>
+    <p>El desinstalador se encuentra en la misma carpeta donde se instaló la aplicación, típicamente:</p>
+    <pre>C:\Program Files\ElectricCityFactura\unins000.exe</pre>
+
+    <p>El usuario puede desinstalar la aplicación mediante:</p>
+    <ul>
+        <li>Ejecutar <code>unins000.exe</code> directamente</li>
+        <li>A través del Panel de Control de Windows (Agregar o quitar programas)</li>
+    </ul>
+
+    <hr>
+
+    <h2>📦 Archivos generados</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Nombre</th>
+                <th>Ruta</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>JAR</td>
+                <td>electricityFacturas.jar</td>
+                <td>build/libs/</td>
+            </tr>
+            <tr>
+                <td>EXE (jpackage)</td>
+                <td>ElectricCityFactura-1.0.exe</td>
+                <td>app/</td>
+            </tr>
+            <tr>
+                <td>MSI (jpackage)</td>
+                <td>ElectricCityFactura-1.0.msi</td>
+                <td>app/</td>
+            </tr>
+            <tr>
+                <td>Instalador</td>
+                <td>ElectricCityFactura_Instalador.exe</td>
+                <td>Output/</td>
+            </tr>
+            <tr>
+                <td>Desinstalador</td>
+                <td>unins000.exe</td>
+                <td>Directorio de instalación</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning">
+        <strong>⚠️ Nota para GitHub:</strong> Los archivos generados (.exe, .msi, .jar) no deben subirse al repositorio. 
+        Asegúrate de que tu <code>.gitignore</code> incluya estas extensiones.
+    </div>
+
+    <h2>🔧 Comandos útiles</h2>
+    
+    <h3>Generar JAR:</h3>
+    <pre>./gradlew jar</pre>
+
+    <h3>Ejecutar aplicación:</h3>
+    <pre>./gradlew run</pre>
+
+    <h3>Limpiar archivos generados:</h3>
+    <pre>./gradlew clean</pre>
+
+    <hr>
+    
+    <p align="center">
+        <strong>Práctica 7.1: Empaqueta y distribuye - ProyectoFacturaLuz</strong><br>
+        Curso 2º DAM - Interfaces
+    </p>
+</body>
+</html>
